@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect GetMyMeter",
+        "description": "Enter the read-only portal values. The token is stored as a masked Home Assistant secret and is never placed in a request URL.",
+        "data": {
+          "company_id": "Utility/company ID",
+          "account": "Portal account identifier",
+          "channel": "Meter channel",
+          "token": "H2O portal token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate GetMyMeter",
+        "description": "The portal token has expired. Enter a replacement token from your authenticated portal session.",
+        "data": {
+          "token": "H2O portal token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the GetMyMeter portal.",
+      "invalid_auth": "The H2O portal token was rejected or expired.",
+      "unknown": "Unexpected error while validating GetMyMeter."
+    },
+    "abort": {
+      "already_configured": "This GetMyMeter meter channel is already configured.",
+      "reauth_successful": "GetMyMeter was reauthenticated successfully."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "daily_usage": {
+        "name": "Daily usage"
+      },
+      "cumulative_usage": {
+        "name": "Cumulative usage"
+      },
+      "monthly_usage": {
+        "name": "Monthly usage"
+      }
+    }
+  },
+  "exceptions": {
+    "reauth_required": {
+      "message": "The GetMyMeter portal token has expired or was rejected; reauthentication is required."
+    }
+  }
+}
