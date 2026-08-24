@@ -21,12 +21,8 @@ _REDACT_KEYS = {CONF_COMPANY_ID, CONF_ACCOUNT, CONF_CHANNEL, CONF_TOKEN}
 
 
 def _bucket_snapshot(records: tuple[Any, ...]) -> dict[str, object]:
-    """Return counts and timestamps without returning portal values."""
-    return {
-        "count": len(records),
-        "first_timestamp": records[0].timestamp_utc if records else None,
-        "last_timestamp": records[-1].timestamp_utc if records else None,
-    }
+    """Return a count without exposing portal values or household timing."""
+    return {"count": len(records)}
 
 
 async def async_get_config_entry_diagnostics(

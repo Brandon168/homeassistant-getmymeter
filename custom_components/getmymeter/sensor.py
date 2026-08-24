@@ -38,7 +38,6 @@ SENSOR_DESCRIPTIONS: tuple[GetMyMeterSensorDescription, ...] = (
     GetMyMeterSensorDescription(
         key="raw_usage",
         translation_key="raw_usage",
-        device_class=SensorDeviceClass.VOLUME_STORAGE,
         native_unit_of_measurement=UnitOfVolume.GALLONS,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: (

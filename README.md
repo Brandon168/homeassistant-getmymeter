@@ -82,7 +82,7 @@ If the portal is down, the integration reports a connection error and retries du
 - The integration is read-only and does not support billing, account, session, or portal mutations.
 - History imports depend on the portal returning complete bucket payloads and on Recorder being enabled. A missing optional bucket is visible in diagnostics and is retried.
 - The raw/hourly series is historical statistics only; the latest raw value is exposed as a current sensor. Raw, daily, and monthly values are different period observations.
-- Diagnostics contain only redacted configuration, counts, timestamps, fixed transport policy, and aggregate replay status. They do not contain tokens, account identifiers, raw responses, headers, or usage values.
+- Diagnostics contain only redacted configuration, record counts, fixed transport policy, and aggregate replay status. They do not contain tokens, account identifiers, household timestamps, raw responses, headers, or usage values.
 
 For an issue, first download the redacted GetMyMeter diagnostics from Home Assistant. Before posting anything, remove tokens, account/company/channel identifiers, cookies, authorization headers, full URLs, addresses, meter identifiers, timestamps that identify a household, screenshots, and raw portal responses. Never attach a browser capture or a copied request. Use the repository's [issue tracker](https://github.com/Brandon168/homeassistant-getmymeter/issues).
 

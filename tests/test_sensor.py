@@ -51,7 +51,7 @@ async def test_four_current_water_sensors_have_stable_ids(
         ("getmymeter", stable_entry_unique_id(entry.data))
     }
     descriptions = {description.key: description for description in SENSOR_DESCRIPTIONS}
-    assert descriptions["raw_usage"].device_class is SensorDeviceClass.VOLUME_STORAGE
+    assert descriptions["raw_usage"].device_class is None
     assert descriptions["raw_usage"].state_class is SensorStateClass.MEASUREMENT
     assert descriptions["daily_usage"].device_class is SensorDeviceClass.WATER
     assert descriptions["daily_usage"].state_class is None

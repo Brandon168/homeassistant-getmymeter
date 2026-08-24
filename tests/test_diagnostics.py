@@ -39,6 +39,7 @@ async def test_diagnostics_redact_token_and_identity(hass: HomeAssistant) -> Non
     for secret in TEST_CONFIG.values():
         assert secret not in serialized
     assert "identity_hash" not in serialized
+    assert "timestamp" not in serialized
     assert "1704067200000" not in serialized
     assert "1" not in diagnostics["coordinator"]["buckets"]["raw"]
     assert diagnostics["api"]["read_only"] is True
