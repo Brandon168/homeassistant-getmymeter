@@ -33,6 +33,8 @@ To find the values without saving or sharing a browser capture:
 5. In request headers, manually read the value of the `h2o-token` header. Paste that value directly into the masked Home Assistant token field.
 6. Clear the Network panel and close Developer Tools when finished.
 
+Use the `h2o-token` **request header from the `/ami_data` request**. Do not use the similarly named `H2O-Portal-Token` page value or `h2o-portal-token` cookie; those maintain the browser portal session but are not accepted by `/ami_data`. In the portal version verified for this integration, the API header was longer than the 36-character portal-session value.
+
 Never use **Save all as HAR**, **Copy as cURL**, a screenshot, a console dump, or an issue attachment for this process. Do not save, commit, upload, email, or share the token, cookies, authorization headers, full request URL, or portal response. A token is not a password for the portal and is sensitive configuration data even though Home Assistant masks it in the form.
 
 The fixed endpoint is `https://h2o-analytics.appspot.com/ami_data`. The token is sent only in the `h2o-token` request header. Requests have an explicit timeout and redirects disabled. Login pages and other HTML responses are rejected without retaining their body.

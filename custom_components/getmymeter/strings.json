@@ -14,7 +14,7 @@
           "company_id": "The company or utility identifier shown in your own portal request.",
           "account": "The account identifier shown in your own portal request; do not paste a username or password.",
           "channel": "The meter channel shown in your own portal request.",
-          "token": "The current h2o-token request-header value. Never save, log, screenshot, upload, or share it."
+          "token": "The h2o-token request header from an /ami_data request. Do not use the H2O-Portal-Token page value or h2o-portal-token cookie. Never save, log, screenshot, upload, or share it."
         }
       },
       "reauth_confirm": {
@@ -24,7 +24,7 @@
           "token": "H2O portal token"
         },
         "data_description": {
-          "token": "Paste the current h2o-token header value only; never include cookies or a copied request."
+          "token": "Paste the h2o-token request header from an /ami_data request only; never include the portal page token, cookies, or a copied request."
         }
       },
       "reconfigure": {
