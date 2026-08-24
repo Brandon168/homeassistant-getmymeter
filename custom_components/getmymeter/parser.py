@@ -1,7 +1,8 @@
 """Pure parsers for the GetMyMeter AMI response format."""
 
+import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 
 BUCKETS = {"r": "raw/hourly", "d": "daily", "m": "monthly"}
@@ -22,11 +23,14 @@ class UsageRecord:
     aux_value: float | None
 
     @property
+    def timestamp_datetime(self) -> datetime:
+        """Return the sample timestamp as an aware UTC datetime."""
+        return datetime.fromtimestamp(self.timestamp_ms / 1000, UTC)
+
+    @property
     def timestamp_utc(self) -> str:
         """Return the sample timestamp in UTC ISO-8601 form."""
-        return datetime.fromtimestamp(
-            self.timestamp_ms / 1000, timezone.utc
-        ).isoformat()
+        return self.timestamp_datetime.isoformat()
 
 
 def _parse_number(value: str) -> float | None:
@@ -35,9 +39,19 @@ def _parse_number(value: str) -> float | None:
     if not value:
         return None
     try:
-        return float(Decimal(value))
-    except (InvalidOperation, ValueError):
+        parsed = float(Decimal(value))
+    except InvalidOperation, ValueError, OverflowError:
         return None
+    return parsed if math.isfinite(parsed) else None
+
+
+def _valid_timestamp(timestamp_ms: int) -> bool:
+    """Return whether an epoch-millisecond value can be represented safely."""
+    try:
+        datetime.fromtimestamp(timestamp_ms / 1000, UTC)
+    except OverflowError, OSError, ValueError:
+        return False
+    return True
 
 
 def parse_ami_data(text: str, bucket: str) -> tuple[UsageRecord, ...]:
@@ -53,6 +67,8 @@ def parse_ami_data(text: str, bucket: str) -> tuple[UsageRecord, ...]:
         try:
             timestamp_ms = int(parts[0].strip())
         except ValueError:
+            continue
+        if not _valid_timestamp(timestamp_ms):
             continue
         usage = _parse_number(parts[1])
         if usage is None:

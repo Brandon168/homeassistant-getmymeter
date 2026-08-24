@@ -16,12 +16,13 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, INTEGRATION_TITLE
+from .const import API_ORIGIN, DOMAIN, INTEGRATION_TITLE
 from .coordinator import (
     GetMyMeterConfigEntry,
     GetMyMeterCoordinator,
     GetMyMeterData,
 )
+from .identity import stable_entry_unique_id
 from .parser import UsageRecord
 
 
@@ -35,11 +36,21 @@ class GetMyMeterSensorDescription(SensorEntityDescription):
 
 SENSOR_DESCRIPTIONS: tuple[GetMyMeterSensorDescription, ...] = (
     GetMyMeterSensorDescription(
+        key="raw_usage",
+        translation_key="raw_usage",
+        device_class=SensorDeviceClass.VOLUME_STORAGE,
+        native_unit_of_measurement=UnitOfVolume.GALLONS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: (
+            data.latest_raw.usage_gallons if data.latest_raw else None
+        ),
+        record_fn=lambda data: data.latest_raw,
+    ),
+    GetMyMeterSensorDescription(
         key="daily_usage",
         translation_key="daily_usage",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.GALLONS,
-        state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: (
             data.latest_daily.usage_gallons if data.latest_daily else None
         ),
@@ -61,7 +72,6 @@ SENSOR_DESCRIPTIONS: tuple[GetMyMeterSensorDescription, ...] = (
         translation_key="monthly_usage",
         device_class=SensorDeviceClass.WATER,
         native_unit_of_measurement=UnitOfVolume.GALLONS,
-        state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: (
             data.latest_monthly.usage_gallons if data.latest_monthly else None
         ),
@@ -99,14 +109,15 @@ class GetMyMeterSensor(CoordinatorEntity[GetMyMeterCoordinator], SensorEntity):
         super().__init__(coordinator)
         self.entity_description = description
         entry = coordinator.config_entry
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        stable_id = entry.unique_id or stable_entry_unique_id(entry.data)
+        self._attr_unique_id = f"{stable_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, entry.unique_id or entry.entry_id)},
+            identifiers={(DOMAIN, stable_entry_unique_id(entry.data))},
             manufacturer="H2O Analytics",
             model="AMI water meter",
             name=INTEGRATION_TITLE,
-            configuration_url="https://getmymeter.info/",
+            configuration_url=API_ORIGIN,
         )
 
     @property
@@ -117,7 +128,7 @@ class GetMyMeterSensor(CoordinatorEntity[GetMyMeterCoordinator], SensorEntity):
 
     @property
     @override
-    def extra_state_attributes(self) -> dict[str, object] | None:
+    def extra_state_attributes(self) -> dict[str, str] | None:
         """Expose only non-secret sample metadata."""
         record = self.entity_description.record_fn(self.coordinator.data)
         if record is None:
@@ -125,5 +136,4 @@ class GetMyMeterSensor(CoordinatorEntity[GetMyMeterCoordinator], SensorEntity):
         return {
             "bucket": record.bucket,
             "sample_timestamp": record.timestamp_utc,
-            "aux_value": record.aux_value,
         }

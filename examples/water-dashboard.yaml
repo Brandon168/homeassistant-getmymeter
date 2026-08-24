@@ -1,0 +1,81 @@
+# Water dashboard example
+#
+# This file is intentionally synthetic. Replace the placeholder entity and
+# statistic IDs with values from the local Home Assistant instance. Configure
+# the daily statistic as a water source in the Energy dashboard first.
+
+title: Synthetic GetMyMeter Water
+views:
+  - title: Water
+    path: water
+    icon: mdi:water
+    type: masonry
+    cards:
+      - type: markdown
+        title: GetMyMeter water
+        content: |
+          Read-only synthetic example. The daily external statistic is the
+          canonical GetMyMeter water source. Raw and monthly statistics are
+          separate overlapping period observations and must not be combined.
+
+      - type: energy-date-selection
+
+      - type: energy-water-graph
+        title: Water usage
+        # The Energy dashboard supplies the configured source. The synthetic
+        # source contract is: type: water,
+        # stat_energy_from: getmymeter:meter_replace_with_identity_hash_daily.
+
+      - type: energy-sources-table
+        title: Water sources
+        types:
+          - water
+        # Configure a synthetic water source in the Energy dashboard with:
+        #   type: water
+        #   stat_energy_from: getmymeter:meter_replace_with_identity_hash_daily
+
+      - type: statistics-graph
+        title: Canonical daily water statistics
+        chart_type: bar
+        period: day
+        days_to_show: 30
+        stat_types:
+          - state
+          - sum
+        entities:
+          - getmymeter:meter_replace_with_identity_hash_daily
+
+      - type: statistics-graph
+        title: Raw hourly water statistics
+        chart_type: line
+        period: hour
+        days_to_show: 7
+        stat_types:
+          - state
+          - sum
+        entities:
+          - getmymeter:meter_replace_with_identity_hash_raw
+
+      - type: statistics-graph
+        title: Monthly water statistics
+        chart_type: bar
+        period: month
+        days_to_show: 365
+        stat_types:
+          - state
+          - sum
+        entities:
+          - getmymeter:meter_replace_with_identity_hash_monthly
+
+      - type: entities
+        title: Current portal values
+        show_header_toggle: false
+        entities:
+          - entity: sensor.replace_with_getmymeter_latest_hourly_usage
+            name: Latest hourly usage
+          - entity: sensor.replace_with_getmymeter_daily_usage
+            name: Daily usage
+          - entity: sensor.replace_with_getmymeter_cumulative_usage
+            name: Cumulative meter
+          - entity: sensor.replace_with_getmymeter_monthly_usage
+            name: Monthly usage

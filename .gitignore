@@ -12,20 +12,31 @@ htmlcov/
 .idea/
 .DS_Store
 
-# Secrets and private captures
+# Secrets, runtime state, and private captures
 .env
 .env.*
 *.har
+*.HAR
 *.sanitized.har
+*.zip
+*.tar
+*.tar.gz
+*.sqlite
+*.sqlite3
+*.db
+*.log
 *redaction-report*.json
+redaction-report.json
+*handoff*.md
+*implementation-report*.md
 *local*.json
 *token*
 *cookie*
 /private/
 /reviews/
+/attachments/
 
-# Build artifacts
-*.zip
-*.tar.gz
+# Generated/build artifacts
 dist/
 build/
+coverage.xml

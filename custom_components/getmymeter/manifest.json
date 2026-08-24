@@ -1,11 +1,12 @@
 {
   "domain": "getmymeter",
   "name": "GetMyMeter",
-  "codeowners": [],
+  "after_dependencies": ["recorder"],
+  "codeowners": ["@Brandon168"],
   "config_flow": true,
-  "documentation": "https://getmymeter.info/",
+  "documentation": "https://github.com/Brandon168/homeassistant-getmymeter",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "quality_scale": "bronze",
+  "issue_tracker": "https://github.com/Brandon168/homeassistant-getmymeter/issues",
   "version": "0.1.0"
 }

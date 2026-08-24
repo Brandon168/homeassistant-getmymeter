@@ -3,12 +3,18 @@
     "step": {
       "user": {
         "title": "Connect GetMyMeter",
-        "description": "Enter the read-only portal values. The token is stored as a masked Home Assistant secret and is never placed in a request URL.",
+        "description": "Enter the read-only portal values. The token is sensitive, is stored in the config entry, and is never placed in a request URL.",
         "data": {
           "company_id": "Utility/company ID",
           "account": "Portal account identifier",
           "channel": "Meter channel",
           "token": "H2O portal token"
+        },
+        "data_description": {
+          "company_id": "The company or utility identifier shown in your own portal request.",
+          "account": "The account identifier shown in your own portal request; do not paste a username or password.",
+          "channel": "The meter channel shown in your own portal request.",
+          "token": "The current h2o-token request-header value. Never save, log, screenshot, upload, or share it."
         }
       },
       "reauth_confirm": {
@@ -16,6 +22,25 @@
         "description": "The portal token has expired. Enter a replacement token from your authenticated portal session.",
         "data": {
           "token": "H2O portal token"
+        },
+        "data_description": {
+          "token": "Paste the current h2o-token header value only; never include cookies or a copied request."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure GetMyMeter",
+        "description": "Change the read-only portal identity. Enter a current token to validate the new values.",
+        "data": {
+          "company_id": "Utility/company ID",
+          "account": "Portal account identifier",
+          "channel": "Meter channel",
+          "token": "H2O portal token"
+        },
+        "data_description": {
+          "company_id": "The company or utility identifier shown in your own portal request.",
+          "account": "The account identifier shown in your own portal request.",
+          "channel": "The meter channel shown in your own portal request.",
+          "token": "The current h2o-token request-header value; never include cookies or a copied request."
         }
       }
     },
@@ -26,11 +51,15 @@
     },
     "abort": {
       "already_configured": "This GetMyMeter meter channel is already configured.",
-      "reauth_successful": "GetMyMeter was reauthenticated successfully."
+      "reauth_successful": "GetMyMeter was reauthenticated successfully.",
+      "reconfigure_successful": "GetMyMeter was reconfigured successfully."
     }
   },
   "entity": {
     "sensor": {
+      "raw_usage": {
+        "name": "Latest hourly usage"
+      },
       "daily_usage": {
         "name": "Daily usage"
       },

@@ -21,6 +21,7 @@ from .const import (
     ERROR_INVALID_AUTH,
     ERROR_UNKNOWN,
 )
+from .identity import stable_entry_unique_id
 
 
 class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -32,6 +33,11 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
         """Validate the supplied token with one read-only daily request."""
         api = GetMyMeterApi(async_get_clientsession(self.hass), data)
         await api.async_fetch_bucket("d")
+
+    @staticmethod
+    def _unique_id(data: Mapping[str, object]) -> str:
+        """Build a stable, non-identifying meter-channel ID."""
+        return stable_entry_unique_id(data)
 
     @staticmethod
     def _schema() -> vol.Schema:
@@ -50,6 +56,25 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
+    @staticmethod
+    def _errors_for_exception(error: Exception) -> str:
+        """Map an API failure to a secret-free flow error key."""
+        if isinstance(error, GetMyMeterAuthError):
+            return ERROR_INVALID_AUTH
+        if isinstance(error, GetMyMeterApiError):
+            return ERROR_CANNOT_CONNECT
+        return ERROR_UNKNOWN
+
+    async def _async_validate_and_get_errors(
+        self, data: Mapping[str, object]
+    ) -> str | None:
+        """Validate data and return a translated error key when needed."""
+        try:
+            await self._async_validate(data)
+        except Exception as err:  # noqa: BLE001
+            return self._errors_for_exception(err)
+        return None
+
     @override
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -57,14 +82,8 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle a user-initiated setup flow."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                await self._async_validate(user_input)
-            except GetMyMeterAuthError:
-                errors["base"] = ERROR_INVALID_AUTH
-            except GetMyMeterApiError:
-                errors["base"] = ERROR_CANNOT_CONNECT
-            except Exception:  # noqa: BLE001
-                errors["base"] = ERROR_UNKNOWN
+            if error := await self._async_validate_and_get_errors(user_input):
+                errors["base"] = error
             else:
                 await self.async_set_unique_id(self._unique_id(user_input))
                 self._abort_if_unique_id_configured()
@@ -79,15 +98,8 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @staticmethod
-    def _unique_id(data: Mapping[str, object]) -> str:
-        """Build a stable identifier for one portal meter channel."""
-        return "|".join(
-            str(data[key]) for key in (CONF_COMPANY_ID, CONF_ACCOUNT, CONF_CHANNEL)
-        )
-
     async def async_step_reauth(
-        self, entry_data: Mapping[str, Any]
+        self, _entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
         """Handle a token-expiry reauthentication request."""
         return await self.async_step_reauth_confirm()
@@ -100,16 +112,13 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self._get_reauth_entry()
         if user_input is not None:
             data = {**entry.data, CONF_TOKEN: user_input[CONF_TOKEN]}
-            try:
-                await self._async_validate(data)
-            except GetMyMeterAuthError:
-                errors["base"] = ERROR_INVALID_AUTH
-            except GetMyMeterApiError:
-                errors["base"] = ERROR_CANNOT_CONNECT
-            except Exception:  # noqa: BLE001
-                errors["base"] = ERROR_UNKNOWN
+            if error := await self._async_validate_and_get_errors(data):
+                errors["base"] = error
             else:
-                return self.async_update_reload_and_abort(entry, data=data)
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={CONF_TOKEN: user_input[CONF_TOKEN]},
+                )
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -123,5 +132,37 @@ class GetMyMeterConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                 }
             ),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change the portal identity and validate the supplied token."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data = {**entry.data, **user_input}
+            if error := await self._async_validate_and_get_errors(data):
+                errors["base"] = error
+            else:
+                unique_id = stable_entry_unique_id(data)
+                await self.async_set_unique_id(unique_id)
+                if unique_id != entry.unique_id:
+                    self._abort_if_unique_id_configured()
+                return self.async_update_reload_and_abort(
+                    entry,
+                    unique_id=unique_id,
+                    data=data,
+                )
+
+        suggested = {
+            key: entry.data[key]
+            for key in (CONF_COMPANY_ID, CONF_ACCOUNT, CONF_CHANNEL)
+            if key in entry.data
+        }
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(self._schema(), suggested),
             errors=errors,
         )
