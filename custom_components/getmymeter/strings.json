@@ -3,50 +3,50 @@
     "step": {
       "user": {
         "title": "Connect GetMyMeter",
-        "description": "Enter the read-only portal values. The token is sensitive, is stored in the config entry, and is never placed in a request URL.",
+        "description": "Open getMyMeter, then Developer Tools → Network. Click Daily or Monthly and select the `/ami_data` request. Copy the query values and the Request Headers `h2o-token` into the matching fields. Do not use cookies, the page token, Copy as cURL, or a HAR file.",
         "data": {
-          "company_id": "Utility/company ID",
-          "account": "Portal account identifier",
-          "channel": "Meter channel",
-          "token": "H2O portal token"
+          "company_id": "cid (company ID)",
+          "account": "l (account number)",
+          "channel": "c (meter channel)",
+          "token": "h2o-token request header"
         },
         "data_description": {
-          "company_id": "The company or utility identifier shown in your own portal request.",
-          "account": "The account identifier shown in your own portal request; do not paste a username or password.",
-          "channel": "The meter channel shown in your own portal request.",
-          "token": "The h2o-token request header from an /ami_data request. Do not use the H2O-Portal-Token page value or h2o-portal-token cookie. Never save, log, screenshot, upload, or share it."
+          "company_id": "From the `/ami_data` query string. Usually 138.",
+          "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen. This is not your email or password.",
+          "channel": "From the `/ami_data` query string. Usually 1.",
+          "token": "From Request Headers on that same `/ami_data` request. Paste the complete value, including the `<token>` and `</token>` wrappers. A 36-character UUID from `H2O-Portal-Token` or the `h2o-portal-token` cookie will be rejected."
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate GetMyMeter",
-        "description": "The portal token has expired. Enter a replacement token from your authenticated portal session.",
+        "description": "The previous `h2o-token` expired. Generate a fresh `/ami_data` request and paste the Request Headers `h2o-token` value, including `<token>` and `</token>`. Do not use the page token or cookie.",
         "data": {
-          "token": "H2O portal token"
+          "token": "h2o-token request header"
         },
         "data_description": {
-          "token": "Paste the h2o-token request header from an /ami_data request only; never include the portal page token, cookies, or a copied request."
+          "token": "Paste the complete `/ami_data` Request Headers `h2o-token` value, including `<token>` and `</token>`. A 36-character UUID from the portal page or cookie will be rejected."
         }
       },
       "reconfigure": {
         "title": "Reconfigure GetMyMeter",
-        "description": "Change the read-only portal identity. Enter a current token to validate the new values.",
+        "description": "Change the meter identity using a current `/ami_data` request. Paste a fresh `h2o-token` header, including `<token>` and `</token>`, to validate the new values.",
         "data": {
-          "company_id": "Utility/company ID",
-          "account": "Portal account identifier",
-          "channel": "Meter channel",
-          "token": "H2O portal token"
+          "company_id": "cid (company ID)",
+          "account": "l (account number)",
+          "channel": "c (meter channel)",
+          "token": "h2o-token request header"
         },
         "data_description": {
-          "company_id": "The company or utility identifier shown in your own portal request.",
-          "account": "The account identifier shown in your own portal request.",
-          "channel": "The meter channel shown in your own portal request.",
-          "token": "The current h2o-token request-header value; never include cookies or a copied request."
+          "company_id": "From the `/ami_data` query string. Usually 138.",
+          "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen.",
+          "channel": "From the `/ami_data` query string. Usually 1.",
+          "token": "From Request Headers on that same `/ami_data` request. Include `<token>` and `</token>`. Do not use the page token or cookie."
         }
       }
     },
     "error": {
-      "cannot_connect": "Unable to connect to the GetMyMeter portal.",
-      "invalid_auth": "The H2O portal token was rejected or expired.",
+      "cannot_connect": "Unable to reach the GetMyMeter portal. Try again later.",
+      "invalid_auth": "That token was rejected. Use the `/ami_data` Request Headers `h2o-token` value, including `<token>` and `</token>`. Do not use the 36-character page token or cookie.",
       "unknown": "Unexpected error while validating GetMyMeter."
     },
     "abort": {

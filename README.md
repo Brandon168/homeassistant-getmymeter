@@ -22,18 +22,25 @@ Home Assistant's [custom integration guidance](https://developers.home-assistant
 
 ## Configure safely
 
-The form asks for a company ID, account identifier, channel, and the sensitive `h2o-token` value. It does not accept the portal username or password. The company and channel defaults are only suggestions; use the values shown by your own portal session.
+The form maps one-to-one onto an `/ami_data` request. It does not accept the portal username or password.
+
+| Form field | Copy this from `/ami_data` |
+|---|---|
+| `cid` (company ID) | Query `cid`. Usually `138`. |
+| `l` (account number) | Query `l`. Copy the complete value, including any suffix after the hyphen. |
+| `c` (meter channel) | Query `c`. Usually `1`. |
+| `h2o-token` request header | Request Headers `h2o-token`, including `<token>` and `</token>`. |
 
 To find the values without saving or sharing a browser capture:
 
 1. Sign in to your own GetMyMeter portal in a private browser window.
-2. Open the browser's Developer Tools → Network panel. Enable the option that preserves the network log only if you understand that it retains private data locally.
-3. Filter requests for `ami_data`, then open the request made when the meter data is displayed.
-4. In the request URL query, manually read the `cid` (company), `l` (account), and `c` (channel) values. Enter them directly into the Home Assistant form.
-5. In request headers, manually read the value of the `h2o-token` header. Paste that value directly into the masked Home Assistant token field.
+2. Open Developer Tools → Network. Preserve the log only if you understand that it retains private data locally.
+3. Filter for `ami_data`, then click Daily or Monthly.
+4. Open that request. Copy `cid`, `l`, and `c` from the query string into the matching form fields.
+5. Copy the complete Request Headers `h2o-token` value, including `<token>` and `</token>`. A valid API token is 51 characters in the current portal. A 36-character UUID is the wrong page or cookie token.
 6. Clear the Network panel and close Developer Tools when finished.
 
-Use the `h2o-token` **request header from the `/ami_data` request**. Do not use the similarly named `H2O-Portal-Token` page value or `h2o-portal-token` cookie; those maintain the browser portal session but are not accepted by `/ami_data`. In the portal version verified for this integration, the API header was longer than the 36-character portal-session value.
+Do not use `H2O-Portal-Token` or the `h2o-portal-token` cookie. Those keep the browser session alive and are rejected by `/ami_data`.
 
 Never use **Save all as HAR**, **Copy as cURL**, a screenshot, a console dump, or an issue attachment for this process. Do not save, commit, upload, email, or share the token, cookies, authorization headers, full request URL, or portal response. A token is not a password for the portal and is sensitive configuration data even though Home Assistant masks it in the form.
 

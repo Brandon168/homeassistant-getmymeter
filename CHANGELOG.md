@@ -2,6 +2,10 @@
 
 All notable changes to this integration are recorded here.
 
+## Unreleased
+
+- Clarified the setup, reauth, and reconfigure forms so each field names the matching `/ami_data` query or `h2o-token` request header, including the required `<token>` wrapper.
+
 ## 0.1.0 - 2026-08-24
 
 - Initial publication-quality read-only integration.
