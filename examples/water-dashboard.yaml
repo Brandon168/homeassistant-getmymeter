@@ -2,7 +2,7 @@
 #
 # This file is intentionally synthetic. Replace the placeholder entity and
 # statistic IDs with values from the local Home Assistant instance. Configure
-# the daily statistic as a water source in the Energy dashboard first.
+# the raw/hourly statistic as a water source in the Energy dashboard first.
 
 title: Synthetic GetMyMeter Water
 views:
@@ -14,8 +14,8 @@ views:
       - type: markdown
         title: GetMyMeter water
         content: |
-          Read-only synthetic example. The daily external statistic is the
-          canonical GetMyMeter water source. Raw and monthly statistics are
+          Read-only synthetic example. The hourly external statistic is the
+          GetMyMeter Energy water source. Daily and monthly statistics are
           separate overlapping period observations and must not be combined.
 
       - type: energy-date-selection
@@ -24,7 +24,7 @@ views:
         title: Water usage
         # The Energy dashboard supplies the configured source. The synthetic
         # source contract is: type: water,
-        # stat_energy_from: getmymeter:meter_replace_with_identity_hash_daily.
+        # stat_energy_from: getmymeter:meter_replace_with_identity_hash_raw.
 
       - type: energy-sources-table
         title: Water sources
@@ -32,7 +32,7 @@ views:
           - water
         # Configure a synthetic water source in the Energy dashboard with:
         #   type: water
-        #   stat_energy_from: getmymeter:meter_replace_with_identity_hash_daily
+        #   stat_energy_from: getmymeter:meter_replace_with_identity_hash_raw
 
       - type: statistics-graph
         title: Canonical daily water statistics

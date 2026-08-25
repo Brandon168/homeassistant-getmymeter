@@ -2,9 +2,11 @@
 
 All notable changes to this integration are recorded here.
 
-## Unreleased
+## 0.1.1 - 2026-08-24
 
 - Clarified the setup, reauth, and reconfigure forms so each field names the matching `/ami_data` query or `h2o-token` request header, including the required `<token>` wrapper.
+- Reworked the README as a concise HACS-first installation and configuration guide.
+- Documented the hourly statistic as the Home Assistant Energy water source.
 
 ## 0.1.0 - 2026-08-24
 

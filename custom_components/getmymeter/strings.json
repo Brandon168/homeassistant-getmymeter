@@ -14,22 +14,22 @@
           "company_id": "From the `/ami_data` query string. Usually 138.",
           "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen. This is not your email or password.",
           "channel": "From the `/ami_data` query string. Usually 1.",
-          "token": "From Request Headers on that same `/ami_data` request. Paste the complete value, including the `<token>` and `</token>` wrappers. A 36-character UUID from `H2O-Portal-Token` or the `h2o-portal-token` cookie will be rejected."
+          "token": "From Request Headers on that same `/ami_data` request. Paste the complete 51-character value, including its wrapper. A 36-character UUID from `H2O-Portal-Token` or the `h2o-portal-token` cookie will be rejected."
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate GetMyMeter",
-        "description": "The previous `h2o-token` expired. Generate a fresh `/ami_data` request and paste the Request Headers `h2o-token` value, including `<token>` and `</token>`. Do not use the page token or cookie.",
+        "description": "The previous `h2o-token` expired. Generate a fresh `/ami_data` request and paste the Request Headers `h2o-token` value, including the complete 51-character wrapper. Do not use the page token or cookie.",
         "data": {
           "token": "h2o-token request header"
         },
         "data_description": {
-          "token": "Paste the complete `/ami_data` Request Headers `h2o-token` value, including `<token>` and `</token>`. A 36-character UUID from the portal page or cookie will be rejected."
+          "token": "Paste the complete `/ami_data` Request Headers `h2o-token` value, including the complete 51-character wrapper. A 36-character UUID from the portal page or cookie will be rejected."
         }
       },
       "reconfigure": {
         "title": "Reconfigure GetMyMeter",
-        "description": "Change the meter identity using a current `/ami_data` request. Paste a fresh `h2o-token` header, including `<token>` and `</token>`, to validate the new values.",
+        "description": "Change the meter identity using a current `/ami_data` request. Paste a fresh `h2o-token` header, including the complete 51-character wrapper, to validate the new values.",
         "data": {
           "company_id": "cid (company ID)",
           "account": "l (account number)",
@@ -40,13 +40,13 @@
           "company_id": "From the `/ami_data` query string. Usually 138.",
           "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen.",
           "channel": "From the `/ami_data` query string. Usually 1.",
-          "token": "From Request Headers on that same `/ami_data` request. Include `<token>` and `</token>`. Do not use the page token or cookie."
+          "token": "From Request Headers on that same `/ami_data` request. Include the complete 51-character wrapper. Do not use the page token or cookie."
         }
       }
     },
     "error": {
       "cannot_connect": "Unable to reach the GetMyMeter portal. Try again later.",
-      "invalid_auth": "That token was rejected. Use the `/ami_data` Request Headers `h2o-token` value, including `<token>` and `</token>`. Do not use the 36-character page token or cookie.",
+      "invalid_auth": "That token was rejected. Use the `/ami_data` Request Headers `h2o-token` value, including the complete 51-character wrapper. Do not use the 36-character page token or cookie.",
       "unknown": "Unexpected error while validating GetMyMeter."
     },
     "abort": {
