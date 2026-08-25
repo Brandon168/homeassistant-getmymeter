@@ -59,6 +59,44 @@ To find these values:
 
 The similarly named portal page value and browser cookie are not the API header and will be rejected.
 
+**Optional: console helper.** Instead of digging through the Network panel, paste this snippet into the portal's browser console (**F12 → Console**) while signed in, then click **Daily** or **Monthly** in the portal. It prints the four values to copy into Home Assistant:
+
+```js
+(() => {
+  const seen = new Set();
+  function capture(url, token) {
+    if (!url || !String(url).includes('/ami_data')) return;
+    try {
+      const u = new URL(url, location.href);
+      const key = u.search + '|' + token;
+      if (seen.has(key)) return;
+      seen.add(key);
+      console.log('%cGetMyMeter credentials (copy these into Home Assistant):', 'color:#2e7d32;font-weight:bold');
+      console.log('  cid: ' + u.searchParams.get('cid'));
+      console.log('  l:   ' + u.searchParams.get('l'));
+      console.log('  c:   ' + u.searchParams.get('c'));
+      console.log('  h2o-token: ' + token);
+    } catch (e) {}
+  }
+  const origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    let token = null;
+    if (init && init.headers) { try { token = new Headers(init.headers).get('h2o-token'); } catch (e) {} }
+    if (String(url).includes('/ami_data')) capture(url, token);
+    return origFetch.apply(this, arguments);
+  };
+  const o = XMLHttpRequest.prototype;
+  const open = o.open, setH = o.setRequestHeader, send = o.send;
+  o.open = function(m, url, ...r) { this.__url = url; this.__token = null; return open.call(this, m, url, ...r); };
+  o.setRequestHeader = function(n, v) { if (String(n).toLowerCase() === 'h2o-token') this.__token = v; return setH.call(this, n, v); };
+  o.send = function(...a) { capture(this.__url, this.__token); return send.apply(this, a); };
+  console.log('%cGetMyMeter helper armed. Now click Daily or Monthly in the portal to capture values.', 'color:#1565c0;font-weight:bold');
+})();
+```
+
+This helper only reads your own browser session's requests and prints the values locally — it does not contact any server or send your credentials anywhere. If it captures nothing, fall back to the Network-panel method above.
+
 ## Entities
 
 | Entity | Description |
