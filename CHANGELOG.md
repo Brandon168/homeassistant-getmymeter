@@ -2,7 +2,7 @@
 
 All notable changes to this integration are recorded here.
 
-## Unreleased
+## 0.1.2 - 2026-08-25
 
 - Made history import incremental: the first run and every fourth run perform a full replay, while runs in between import only rows newer than the last imported period.
 - Documented why the integration re-imports history in the README.
