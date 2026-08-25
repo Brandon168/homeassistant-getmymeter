@@ -2,6 +2,10 @@
 
 All notable changes to this integration are recorded here.
 
+## 0.1.3 - 2026-08-25
+
+- Declared the minimum supported Home Assistant version in `hacs.json` so HACS does not offer the integration to users on older releases.
+
 ## 0.1.2 - 2026-08-25
 
 - Made history import incremental: the first run and every fourth run perform a full replay, while runs in between import only rows newer than the last imported period.
