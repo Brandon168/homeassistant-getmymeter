@@ -72,15 +72,30 @@ All values are reported in gallons. The portal can lag behind Home Assistant's r
 
 ## Historical data
 
-On startup and at each refresh, the integration imports all available hourly, daily, and monthly records into Home Assistant Recorder as separate external statistics. Imports are idempotent, so restarts and portal corrections update existing rows rather than duplicating history.
-
-For the Energy dashboard, use the hourly statistic as the water source:
+The integration imports hourly, daily, and monthly records into Home Assistant Recorder as three separate external statistics. For the Energy dashboard, use the hourly statistic as the water source:
 
 ```text
 getmymeter:meter_<identity_hash>_raw
 ```
 
 Keep hourly, daily, and monthly statistics separate because they represent overlapping periods.
+
+### Why the history is re-imported
+
+Two properties of the portal shape this design:
+
+1. **The portal has no date-range filter.** The `/ami_data` endpoint always returns a bucket's complete series, so the integration receives the full history on every poll regardless of what it asks for.
+2. **The portal is the source of truth.** Utility reads are occasionally corrected retroactively (an estimated read replaced by an actual read), so Home Assistant should converge on the portal's current values rather than freeze at the first import.
+
+Home Assistant's statistics import is an idempotent upsert keyed on period start, so re-importing the same history updates existing rows instead of duplicating them. That makes "always re-import" correct — but re-processing thousands of rows every six hours is wasteful when only the newest period has changed.
+
+The history worker therefore imports incrementally:
+
+- **First run after startup** performs a full replay, backfilling the complete series.
+- **Subsequent runs** import only rows newer than the last imported period, seeding the running cumulative so reconstructed sums stay continuous.
+- **Every fourth run** (roughly daily at the six-hour cadence) performs a full replay again, so retroactive corrections converge within a day.
+
+The network transfer is unchanged — the portal always sends the full series — but the per-cycle build and import work drops to just the new rows.
 
 ## Reauthentication
 

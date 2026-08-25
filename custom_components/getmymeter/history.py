@@ -27,6 +27,7 @@ from .const import (
     BUCKET_RAW,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    FULL_REPLAY_INTERVAL_CYCLES,
     HISTORY_BUCKETS,
     HISTORY_SCHEMA_VERSION,
     LOGGER,
@@ -113,6 +114,8 @@ def build_bucket_statistics(
     bucket: str,
     *,
     now: datetime | None = None,
+    min_start: datetime | None = None,
+    previous_sum: float | None = None,
 ) -> HistoryBuildResult:
     """Build one bucket without network or recorder side effects.
 
@@ -121,10 +124,16 @@ def build_bucket_statistics(
     last input row. Missing cumulative values use a deterministic reconstructed
     running sum and are counted for diagnostics. Source cumulative decreases
     are preserved rather than clamped.
+
+    ``min_start`` drops rows whose canonical start is not newer than the given
+    boundary, and ``previous_sum`` seeds the reconstructed running sum, so an
+    incremental batch continues the cumulative series already in the recorder.
     """
     if bucket not in HISTORY_BUCKETS:
         raise ValueError(f"Unsupported GetMyMeter history bucket: {bucket}")
     now_utc = _as_utc(now or datetime.now(UTC))
+    if min_start is not None:
+        min_start = _as_utc(min_start)
 
     candidates: list[tuple[datetime, UsageRecord, int]] = []
     invalid_count = 0
@@ -141,6 +150,8 @@ def build_bucket_statistics(
             start = canonical_start(record, bucket)
         except OverflowError, OSError, ValueError:
             invalid_count += 1
+            continue
+        if min_start is not None and start <= min_start:
             continue
         candidates.append((start, record, index))
 
@@ -162,8 +173,8 @@ def build_bucket_statistics(
     incomplete_count = 0
     reconstructed_sum_count = 0
     decrease_count = 0
-    running_sum = 0.0
-    previous_sum: float | None = None
+    running_sum = previous_sum if previous_sum is not None else 0.0
+    previous = previous_sum
     for start, record in winners:
         if not _is_complete(record, start, bucket, now_utc):
             incomplete_count += 1
@@ -174,10 +185,10 @@ def build_bucket_statistics(
             sum_value = running_sum
         else:
             sum_value = record.cumulative_gallons
-            if previous_sum is not None and sum_value < previous_sum:
+            if previous is not None and sum_value < previous:
                 decrease_count += 1
             running_sum = sum_value
-        previous_sum = sum_value
+        previous = sum_value
         statistics.append(
             StatisticData(
                 start=start,
@@ -232,7 +243,13 @@ def statistic_metadata(config: Mapping[str, object], bucket: str) -> StatisticMe
 
 
 class GetMyMeterHistoryWorker:
-    """Replay complete portal payloads into three durable recorder series."""
+    """Replay portal payloads into three durable recorder series.
+
+    The first run and every ``FULL_REPLAY_INTERVAL_CYCLES`` runs rebuild the
+    complete series so retroactive portal corrections converge. Runs in between
+    import only rows newer than the last queued period, seeded with the last
+    queued cumulative sum so reconstructed sums stay continuous.
+    """
 
     def __init__(
         self,
@@ -248,6 +265,9 @@ class GetMyMeterHistoryWorker:
         self._coordinator = coordinator
         self._lock = asyncio.Lock()
         self._task: asyncio.Task[None] | None = None
+        self._last_start: dict[str, datetime] = {}
+        self._last_sum: dict[str, float] = {}
+        self._cycles_since_full_replay = 0
         self._last_summary: dict[str, object] = {
             "schema_version": HISTORY_SCHEMA_VERSION,
             "status": "not_started",
@@ -289,71 +309,87 @@ class GetMyMeterHistoryWorker:
             await asyncio.sleep(DEFAULT_SCAN_INTERVAL.total_seconds())
 
     async def async_run(self) -> None:
-        """Fetch and replay each bucket independently."""
+        """Run one replay cycle, full or incremental, under the worker lock."""
         async with self._lock:
-            now = datetime.now(UTC)
-            statuses: dict[str, dict[str, object]] = {}
-            auth_failed = False
-            for bucket in HISTORY_BUCKETS:
-                try:
-                    records = await self.api.async_fetch_bucket(bucket)
-                except GetMyMeterAuthError:
-                    auth_failed = True
-                    statuses[bucket] = {"status": "auth_failed", "rows": 0}
-                    LOGGER.warning(
-                        "GetMyMeter history bucket %s needs reauthentication", bucket
-                    )
-                    continue
-                except GetMyMeterApiError:
-                    statuses[bucket] = {"status": "fetch_failed", "rows": 0}
-                    LOGGER.warning(
-                        "GetMyMeter history bucket %s will be retried", bucket
-                    )
-                    continue
+            full_replay = self._cycles_since_full_replay == 0
+            await self._run_once(full_replay=full_replay)
+            self._cycles_since_full_replay = (
+                self._cycles_since_full_replay + 1
+            ) % FULL_REPLAY_INTERVAL_CYCLES
 
-                result = build_bucket_statistics(records, bucket, now=now)
-                status = "no_complete_data"
-                if result.statistics:
-                    try:
-                        async_add_external_statistics(
-                            self.hass,
-                            statistic_metadata(self.entry.data, bucket),
-                            result.statistics,
-                        )
-                    except HomeAssistantError, RuntimeError:
-                        status = "import_failed"
-                        LOGGER.warning(
-                            "GetMyMeter history bucket %s could not be queued", bucket
-                        )
-                    else:
-                        status = "import_queued"
-                statuses[bucket] = {
-                    "status": status,
-                    "rows": len(result.statistics),
-                    "collisions": result.collision_count,
-                    "incomplete": result.incomplete_count,
-                    "reconstructed_sum": result.reconstructed_sum_count,
-                    "decreases": result.decrease_count,
-                    "invalid": result.invalid_count,
-                }
-
-            self._last_summary = {
-                "schema_version": HISTORY_SCHEMA_VERSION,
-                "status": (
-                    "auth_failed"
-                    if auth_failed
-                    else "partial"
-                    if any(
-                        status["status"] in {"fetch_failed", "import_failed"}
-                        for status in statuses.values()
-                    )
-                    else "complete"
-                ),
-                "buckets": statuses,
-            }
-            if auth_failed and self._coordinator is not None:
-                request_refresh = getattr(
-                    self._coordinator, "async_request_refresh", None
+    async def _run_once(self, *, full_replay: bool) -> None:
+        """Fetch each bucket and queue only the rows this cycle needs."""
+        now = datetime.now(UTC)
+        statuses: dict[str, dict[str, object]] = {}
+        auth_failed = False
+        for bucket in HISTORY_BUCKETS:
+            try:
+                records = await self.api.async_fetch_bucket(bucket)
+            except GetMyMeterAuthError:
+                auth_failed = True
+                statuses[bucket] = {"status": "auth_failed", "rows": 0}
+                LOGGER.warning(
+                    "GetMyMeter history bucket %s needs reauthentication", bucket
                 )
-                if request_refresh is not None:
-                    request_refresh()
+                continue
+            except GetMyMeterApiError:
+                statuses[bucket] = {"status": "fetch_failed", "rows": 0}
+                LOGGER.warning("GetMyMeter history bucket %s will be retried", bucket)
+                continue
+
+            if full_replay:
+                result = build_bucket_statistics(records, bucket, now=now)
+            else:
+                result = build_bucket_statistics(
+                    records,
+                    bucket,
+                    now=now,
+                    min_start=self._last_start.get(bucket),
+                    previous_sum=self._last_sum.get(bucket),
+                )
+            status = "no_complete_data"
+            if result.statistics:
+                try:
+                    async_add_external_statistics(
+                        self.hass,
+                        statistic_metadata(self.entry.data, bucket),
+                        result.statistics,
+                    )
+                except HomeAssistantError, RuntimeError:
+                    status = "import_failed"
+                    LOGGER.warning(
+                        "GetMyMeter history bucket %s could not be queued", bucket
+                    )
+                else:
+                    status = "import_queued"
+                    self._last_start[bucket] = result.statistics[-1]["start"]
+                    self._last_sum[bucket] = result.statistics[-1]["sum"]
+            statuses[bucket] = {
+                "status": status,
+                "rows": len(result.statistics),
+                "collisions": result.collision_count,
+                "incomplete": result.incomplete_count,
+                "reconstructed_sum": result.reconstructed_sum_count,
+                "decreases": result.decrease_count,
+                "invalid": result.invalid_count,
+            }
+
+        self._last_summary = {
+            "schema_version": HISTORY_SCHEMA_VERSION,
+            "status": (
+                "auth_failed"
+                if auth_failed
+                else "partial"
+                if any(
+                    status["status"] in {"fetch_failed", "import_failed"}
+                    for status in statuses.values()
+                )
+                else "complete"
+            ),
+            "mode": "full" if full_replay else "incremental",
+            "buckets": statuses,
+        }
+        if auth_failed and self._coordinator is not None:
+            request_refresh = getattr(self._coordinator, "async_request_refresh", None)
+            if request_refresh is not None:
+                request_refresh()

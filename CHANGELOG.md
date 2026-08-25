@@ -2,6 +2,11 @@
 
 All notable changes to this integration are recorded here.
 
+## Unreleased
+
+- Made history import incremental: the first run and every fourth run perform a full replay, while runs in between import only rows newer than the last imported period.
+- Documented why the integration re-imports history in the README.
+
 ## 0.1.1 - 2026-08-24
 
 - Clarified the setup, reauth, and reconfigure forms so each field names the matching `/ami_data` query or `h2o-token` request header, including the required `<token>` wrapper.

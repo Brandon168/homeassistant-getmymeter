@@ -113,6 +113,31 @@ def test_missing_sum_reconstructs_and_decrease_is_not_clamped() -> None:
     assert result.decrease_count == 1
 
 
+def test_incremental_build_skips_imported_rows_and_seeds_reconstruction() -> None:
+    """Incremental builds import only newer rows and continue the running sum."""
+    first = make_record(
+        datetime(2026, 1, 1, 23, 59, 59, tzinfo=UTC), BUCKET_DAILY, 2, 10
+    )
+    second = make_record(
+        datetime(2026, 1, 2, 23, 59, 59, tzinfo=UTC), BUCKET_DAILY, 5, None
+    )
+    full = build_bucket_statistics([first, second], BUCKET_DAILY, now=NOW)
+    assert [row["sum"] for row in full.statistics] == [10, 15]
+
+    incremental = build_bucket_statistics(
+        [first, second],
+        BUCKET_DAILY,
+        now=NOW,
+        min_start=canonical_start(first, BUCKET_DAILY),
+        previous_sum=10.0,
+    )
+    assert [row["start"] for row in incremental.statistics] == [
+        canonical_start(second, BUCKET_DAILY)
+    ]
+    assert incremental.statistics[0]["sum"] == 15
+    assert incremental.reconstructed_sum_count == 1
+
+
 def test_three_series_have_separate_stable_metadata() -> None:
     """Raw, daily, and monthly metadata never share an overlapping ID."""
     records = {
