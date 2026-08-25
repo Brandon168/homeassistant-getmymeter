@@ -12,6 +12,9 @@ from homeassistant.components.recorder.statistics import (
     statistics_during_period,
 )
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.components.recorder.common import (
+    async_wait_recording_done,
+)
 
 from custom_components.getmymeter.const import BUCKET_DAILY, BUCKET_MONTHLY, BUCKET_RAW
 from custom_components.getmymeter.history import (
@@ -66,15 +69,14 @@ async def test_external_statistics_metadata_rows_idempotence_and_correction(
         statistic_metadata(entry.data, bucket)["statistic_id"] for bucket in records
     }
 
-    async with async_test_recorder(hass) as recorder:
+    async with async_test_recorder(hass):
         for bucket in records:
             async_add_external_statistics(
                 hass,
                 statistic_metadata(entry.data, bucket),
                 prepared[bucket].statistics,
             )
-        await hass.async_block_till_done()
-        await recorder.async_block_till_done()
+        await async_wait_recording_done(hass)
 
         metadata = await hass.async_add_executor_job(
             partial(get_metadata, hass, statistic_ids=statistic_ids)
@@ -94,8 +96,7 @@ async def test_external_statistics_metadata_rows_idempotence_and_correction(
                 statistic_metadata(entry.data, bucket),
                 prepared[bucket].statistics,
             )
-        await hass.async_block_till_done()
-        await recorder.async_block_till_done()
+        await async_wait_recording_done(hass)
 
         correction_record = UsageRecord(
             int(datetime(2026, 1, 1, 1, 55, tzinfo=UTC).timestamp() * 1000),
@@ -112,8 +113,7 @@ async def test_external_statistics_metadata_rows_idempotence_and_correction(
             statistic_metadata(entry.data, BUCKET_RAW),
             correction.statistics,
         )
-        await hass.async_block_till_done()
-        await recorder.async_block_till_done()
+        await async_wait_recording_done(hass)
 
         rows = await hass.async_add_executor_job(
             partial(
