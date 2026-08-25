@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 
 from homeassistant.components.recorder import Recorder
 from homeassistant.components.recorder import migration as recorder_migration
+from homeassistant.helpers import recorder as recorder_helper
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from sqlalchemy.orm import Session
 
 from custom_components.getmymeter.const import (
     CONF_ACCOUNT,
@@ -18,6 +20,8 @@ from custom_components.getmymeter.identity import stable_entry_unique_id
 # HA 2026.8.3's wheel hides Recorder behind TYPE_CHECKING, but Python 3.14
 # evaluates the annotation when the recorder test fixture creates an autospec.
 recorder_migration.Recorder = Recorder
+recorder_helper.Recorder = Recorder
+recorder_helper.Session = Session
 
 TEST_CONFIG = {
     CONF_COMPANY_ID: "synthetic-company",
