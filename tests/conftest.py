@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+from homeassistant.components.recorder import Recorder
+from homeassistant.components.recorder import migration as recorder_migration
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.getmymeter.const import (
@@ -12,6 +14,10 @@ from custom_components.getmymeter.const import (
     DOMAIN,
 )
 from custom_components.getmymeter.identity import stable_entry_unique_id
+
+# HA 2026.8.3's wheel hides Recorder behind TYPE_CHECKING, but Python 3.14
+# evaluates the annotation when the recorder test fixture creates an autospec.
+recorder_migration.Recorder = Recorder
 
 TEST_CONFIG = {
     CONF_COMPANY_ID: "synthetic-company",
