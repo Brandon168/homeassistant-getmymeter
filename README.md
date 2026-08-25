@@ -52,52 +52,12 @@ To find these values:
 
 1. Sign in to GetMyMeter.
 2. Open your browser's **Developer Tools → Network** panel.
-3. Filter for `ami_data`, then select **Daily** or **Monthly** in the portal.
-4. Open the `/ami_data` request and copy `cid`, `l`, and `c` from its query string.
-5. Copy the complete `h2o-token` value from **Request Headers**.
+3. In the Network panel, tick **Disable cache**, then reload the portal page (**Cmd/Ctrl + R**). This forces the portal to re-fetch the meter data so it appears in the log.
+4. In the filter box, type `ami_data`.
+5. Open the `/ami_data` request. Copy `cid`, `l`, and `c` from its query string, and copy the complete `h2o-token` value from **Request Headers**.
 6. Enter the four values in the Home Assistant setup form.
 
-The similarly named portal page value and browser cookie are not the API header and will be rejected.
-
-**Optional: console helper.** Instead of digging through the Network panel, paste this snippet into the portal's browser console (**F12 → Console**) while signed in, then click **Daily** or **Monthly** in the portal. If the console blocks the paste, type `allow pasting` and press Enter first, then paste. It prints the four values to copy into Home Assistant:
-
-```js
-(() => {
-  const seen = new Set();
-  function capture(url, token) {
-    if (!url || !String(url).includes('/ami_data')) return;
-    try {
-      const u = new URL(url, location.href);
-      const key = u.search + '|' + token;
-      if (seen.has(key)) return;
-      seen.add(key);
-      console.log('=====================================');
-      console.log('GetMyMeter credentials (copy into Home Assistant):');
-      console.log('  cid = ' + u.searchParams.get('cid'));
-      console.log('  l   = ' + u.searchParams.get('l'));
-      console.log('  c   = ' + u.searchParams.get('c'));
-      console.log('  h2o-token = ' + token);
-      console.log('=====================================');
-    } catch (e) {}
-  }
-  const origFetch = window.fetch;
-  window.fetch = function(input, init) {
-    const url = typeof input === 'string' ? input : (input && input.url) || '';
-    let token = null;
-    if (init && init.headers) { try { token = new Headers(init.headers).get('h2o-token'); } catch (e) {} }
-    if (String(url).includes('/ami_data')) capture(url, token);
-    return origFetch.apply(this, arguments);
-  };
-  const o = XMLHttpRequest.prototype;
-  const open = o.open, setH = o.setRequestHeader, send = o.send;
-  o.open = function(m, url, ...r) { this.__url = url; this.__token = null; return open.call(this, m, url, ...r); };
-  o.setRequestHeader = function(n, v) { if (String(n).toLowerCase() === 'h2o-token') this.__token = v; return setH.call(this, n, v); };
-  o.send = function(...a) { capture(this.__url, this.__token); return send.apply(this, a); };
-  return 'GetMyMeter helper armed. Now click Daily or Monthly in the portal.';
-})();
-```
-
-This helper only reads your own browser session's requests and prints the values locally — it does not contact any server or send your credentials anywhere. It returns a confirmation message when armed, and the credentials appear in the console after you click **Daily** or **Monthly**. If it captures nothing, fall back to the Network-panel method above.
+The similarly named portal page value and browser cookie are not the API header and will be rejected. If the `h2o-token` ever stops working, repeat these steps to capture the current value.
 
 ## Entities
 
