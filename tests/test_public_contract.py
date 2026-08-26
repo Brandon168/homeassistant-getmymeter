@@ -22,7 +22,7 @@ def test_public_json_and_dashboard_contract() -> None:
     hacs = json.loads((ROOT / "hacs.json").read_text())
     dashboard = yaml.safe_load((ROOT / "examples/water-dashboard.yaml").read_text())
 
-    assert manifest["version"] == "0.1.3"
+    assert manifest["version"] == "0.2.0"
     assert manifest["codeowners"] == ["@Brandon168"]
     assert strings == translations
     assert hacs["name"] == "GetMyMeter"

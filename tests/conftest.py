@@ -12,7 +12,9 @@ from custom_components.getmymeter.const import (
     CONF_ACCOUNT,
     CONF_CHANNEL,
     CONF_COMPANY_ID,
+    CONF_PASSWORD,
     CONF_TOKEN,
+    CONF_USERNAME,
     DOMAIN,
 )
 from custom_components.getmymeter.identity import stable_entry_unique_id
@@ -24,9 +26,17 @@ recorder_helper.Recorder = Recorder
 recorder_helper.Session = Session
 
 TEST_CONFIG = {
+    CONF_USERNAME: "synthetic-user",
+    CONF_PASSWORD: "synthetic-password",
     CONF_COMPANY_ID: "synthetic-company",
     CONF_ACCOUNT: "synthetic-account",
     CONF_CHANNEL: "synthetic-channel",
+}
+
+LEGACY_TEST_CONFIG = {
+    CONF_COMPANY_ID: "138",
+    CONF_ACCOUNT: "synthetic-account",
+    CONF_CHANNEL: "1",
     CONF_TOKEN: "synthetic-token-value",
 }
 

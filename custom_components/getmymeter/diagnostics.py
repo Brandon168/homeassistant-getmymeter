@@ -12,12 +12,21 @@ from .const import (
     CONF_ACCOUNT,
     CONF_CHANNEL,
     CONF_COMPANY_ID,
+    CONF_PASSWORD,
     CONF_TOKEN,
+    CONF_USERNAME,
     REQUEST_TIMEOUT_SECONDS,
 )
 from .coordinator import GetMyMeterCoordinator
 
-_REDACT_KEYS = {CONF_COMPANY_ID, CONF_ACCOUNT, CONF_CHANNEL, CONF_TOKEN}
+_REDACT_KEYS = {
+    CONF_COMPANY_ID,
+    CONF_ACCOUNT,
+    CONF_CHANNEL,
+    CONF_PASSWORD,
+    CONF_TOKEN,
+    CONF_USERNAME,
+}
 
 
 def _bucket_snapshot(records: tuple[Any, ...]) -> dict[str, object]:
@@ -36,6 +45,8 @@ async def async_get_config_entry_diagnostics(
             CONF_COMPANY_ID: entry.data.get(CONF_COMPANY_ID),
             CONF_ACCOUNT: entry.data.get(CONF_ACCOUNT),
             CONF_CHANNEL: entry.data.get(CONF_CHANNEL),
+            CONF_USERNAME: entry.data.get(CONF_USERNAME),
+            CONF_PASSWORD: entry.data.get(CONF_PASSWORD),
             CONF_TOKEN: entry.data.get(CONF_TOKEN),
         },
         _REDACT_KEYS,

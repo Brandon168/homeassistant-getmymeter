@@ -3,56 +3,51 @@
     "step": {
       "user": {
         "title": "Connect GetMyMeter",
-        "description": "Open getMyMeter, then Developer Tools → Network. Click Daily or Monthly and select the `/ami_data` request. Copy the query values and the Request Headers `h2o-token` into the matching fields. Do not use cookies, the page token, Copy as cURL, or a HAR file.",
+        "description": "Enter the same username and password you use on getMyMeter. The integration signs in and discovers your meter automatically.",
         "data": {
-          "company_id": "cid (company ID)",
-          "account": "l (account number)",
-          "channel": "c (meter channel)",
-          "token": "h2o-token request header"
+          "username": "Username",
+          "password": "Password"
         },
         "data_description": {
-          "company_id": "From the `/ami_data` query string. Usually 138.",
-          "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen. This is not your email or password.",
-          "channel": "From the `/ami_data` query string. Usually 1.",
-          "token": "From Request Headers on that same `/ami_data` request. Paste the complete 51-character value, including its wrapper. A 36-character UUID from `H2O-Portal-Token` or the `h2o-portal-token` cookie will be rejected."
+          "username": "Your getMyMeter portal username.",
+          "password": "Your getMyMeter portal password. Home Assistant stores integration credentials in the config entry."
+        }
+      },
+      "meter": {
+        "title": "Select meter",
+        "description": "This portal account has more than one meter. Select the meter to add.",
+        "data": {
+          "meter": "Meter"
         }
       },
       "reauth_confirm": {
-        "title": "Reauthenticate GetMyMeter",
-        "description": "The previous `h2o-token` expired. Generate a fresh `/ami_data` request and paste the Request Headers `h2o-token` value, including the complete 51-character wrapper. Do not use the page token or cookie.",
+        "title": "Sign in to GetMyMeter",
+        "description": "Enter your getMyMeter username and password. This one-time step replaces the expired manually copied token; future session renewal is automatic.",
         "data": {
-          "token": "h2o-token request header"
-        },
-        "data_description": {
-          "token": "Paste the complete `/ami_data` Request Headers `h2o-token` value, including the complete 51-character wrapper. A 36-character UUID from the portal page or cookie will be rejected."
+          "username": "Username",
+          "password": "Password"
         }
       },
       "reconfigure": {
-        "title": "Reconfigure GetMyMeter",
-        "description": "Change the meter identity using a current `/ami_data` request. Paste a fresh `h2o-token` header, including the complete 51-character wrapper, to validate the new values.",
+        "title": "Update GetMyMeter credentials",
+        "description": "Enter the current getMyMeter username and password. The configured meter will be rediscovered automatically.",
         "data": {
-          "company_id": "cid (company ID)",
-          "account": "l (account number)",
-          "channel": "c (meter channel)",
-          "token": "h2o-token request header"
-        },
-        "data_description": {
-          "company_id": "From the `/ami_data` query string. Usually 138.",
-          "account": "From the `/ami_data` query string. Copy the full `l` value, including any suffix after the hyphen.",
-          "channel": "From the `/ami_data` query string. Usually 1.",
-          "token": "From Request Headers on that same `/ami_data` request. Include the complete 51-character wrapper. Do not use the page token or cookie."
+          "username": "Username",
+          "password": "Password"
         }
       }
     },
     "error": {
-      "cannot_connect": "Unable to reach the GetMyMeter portal. Try again later.",
-      "invalid_auth": "That token was rejected. Use the `/ami_data` Request Headers `h2o-token` value, including the complete 51-character wrapper. Do not use the 36-character page token or cookie.",
-      "unknown": "Unexpected error while validating GetMyMeter."
+      "cannot_connect": "Unable to reach or read the GetMyMeter portal. Try again later.",
+      "invalid_auth": "The GetMyMeter username or password was rejected.",
+      "unknown": "Unexpected error while connecting to GetMyMeter."
     },
     "abort": {
-      "already_configured": "This GetMyMeter meter channel is already configured.",
-      "reauth_successful": "GetMyMeter was reauthenticated successfully.",
-      "reconfigure_successful": "GetMyMeter was reconfigured successfully."
+      "already_configured": "This GetMyMeter meter is already configured.",
+      "reauth_successful": "GetMyMeter credentials were updated successfully.",
+      "reconfigure_successful": "GetMyMeter was reconfigured successfully.",
+      "unknown": "The GetMyMeter setup flow could not continue.",
+      "wrong_account": "Those credentials do not provide access to the meter already configured in this entry."
     }
   },
   "entity": {
@@ -73,7 +68,7 @@
   },
   "exceptions": {
     "reauth_required": {
-      "message": "The GetMyMeter portal token has expired or was rejected; reauthentication is required."
+      "message": "GetMyMeter credentials are missing or were rejected; sign in again."
     }
   }
 }

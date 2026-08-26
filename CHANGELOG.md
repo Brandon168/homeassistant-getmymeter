@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Replaced manual `/ami_data` token setup with username/password login and automatic meter discovery.
+- Added transparent relogin and one retry when a portal session expires.
+- Added a one-time migration flow for existing token-only config entries.
+- Session tokens and cookies are now transient and are not stored in config entries.
+
 All notable changes to this integration are recorded here.
 
 ## 0.1.3 - 2026-08-25

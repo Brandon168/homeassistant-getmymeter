@@ -10,7 +10,8 @@ An unofficial, read-only Home Assistant integration for water meters available t
 - Current hourly, daily, monthly, and cumulative water usage in gallons
 - Full hourly, daily, and monthly history backfilled into Home Assistant long-term statistics
 - Home Assistant Energy dashboard water-source support
-- Config-flow setup, reauthentication, reconfiguration, and redacted diagnostics
+- Username/password setup with automatic meter discovery and session renewal
+- Reauthentication, reconfiguration, and redacted diagnostics
 - Cloud polling with read-only HTTPS requests
 
 ## Installation
@@ -39,25 +40,15 @@ An unofficial, read-only Home Assistant integration for water meters available t
 
 ## Configuration
 
-The setup form maps directly to the portal's `/ami_data` request:
+Enter the username and password used on the GetMyMeter website. The integration
+signs in, discovers the company, account, and meter channel, and validates the
+meter automatically. If the portal account contains several meters, Home
+Assistant presents a meter-selection step.
 
-| Home Assistant field | Portal value |
-|---|---|
-| `cid` (company ID) | The `cid` query value, usually `138` |
-| `l` (account number) | The complete `l` query value |
-| `c` (meter channel) | The `c` query value, usually `1` |
-| `h2o-token` request header | The complete `h2o-token` Request Headers value, including `<token>` and `</token>` |
-
-To find these values:
-
-1. Sign in to GetMyMeter.
-2. Open your browser's **Developer Tools → Network** panel.
-3. In the Network panel, tick **Disable cache**, then reload the portal page (**Cmd/Ctrl + R**). This forces the portal to re-fetch the meter data so it appears in the log.
-4. In the filter box, type `ami_data`.
-5. Open the `/ami_data` request. Copy `cid`, `l`, and `c` from its query string, and copy the complete `h2o-token` value from **Request Headers**.
-6. Enter the four values in the Home Assistant setup form.
-
-The similarly named portal page value and browser cookie are not the API header and will be rejected. If the `h2o-token` ever stops working, repeat these steps to capture the current value.
+Session tokens are kept only in memory. When a portal session expires, the
+integration signs in again and retries the read automatically. User
+reauthentication is required only when the stored username or password is no
+longer accepted.
 
 ## Entities
 
@@ -99,7 +90,10 @@ The network transfer is unchanged — the portal always sends the full series �
 
 ## Reauthentication
 
-If the portal rejects an expired credential, Home Assistant opens a reauthentication flow. Generate a fresh `/ami_data` request and enter its complete `h2o-token` Request Headers value.
+Existing token-based installations receive a one-time reauthentication prompt.
+Enter the GetMyMeter username and password; the integration rediscovers the
+configured meter and removes the old stored token. Normal session expiration is
+handled transparently afterward.
 
 ## Compatibility
 
