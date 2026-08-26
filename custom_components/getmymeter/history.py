@@ -6,7 +6,8 @@ import asyncio
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
+from zoneinfo import ZoneInfo
 
 from homeassistant.components.recorder.models.statistics import (
     StatisticData,
@@ -56,28 +57,45 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def _source_datetime(record: UsageRecord) -> datetime:
-    """Return a source record timestamp in UTC."""
-    return record.timestamp_datetime
+def _source_datetime(record: UsageRecord, source_timezone: tzinfo) -> datetime:
+    """Return a portal wall-clock timestamp converted to UTC."""
+    return record.timestamp_in(source_timezone)
 
 
-def canonical_start(record: UsageRecord, bucket: str | None = None) -> datetime:
+def canonical_start(
+    record: UsageRecord,
+    bucket: str | None = None,
+    *,
+    source_timezone: tzinfo = UTC,
+) -> datetime:
     """Map a portal record to a deterministic UTC top-of-hour start.
 
     Raw boundary markers at ``xx:59:59`` are treated as the end of that hour,
     then moved to the following hour before flooring. Daily and monthly rows
-    represent their UTC calendar period and therefore use the period start.
+    represent their source-local calendar period and use that period's start.
     """
     bucket = bucket or record.bucket
-    source = _source_datetime(record)
     if bucket == BUCKET_RAW:
+        source = _source_datetime(record, source_timezone)
         if source.minute == 59 and source.second == 59 and source.microsecond == 0:
             source += timedelta(seconds=1)
         return source.replace(minute=0, second=0, microsecond=0)
+    wall_clock = record.timestamp_datetime.replace(tzinfo=None)
     if bucket == BUCKET_DAILY:
-        return source.replace(hour=0, minute=0, second=0, microsecond=0)
+        local_start = wall_clock.replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=source_timezone
+        )
+        return local_start.astimezone(UTC)
     if bucket == BUCKET_MONTHLY:
-        return source.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        local_start = wall_clock.replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=source_timezone,
+        )
+        return local_start.astimezone(UTC)
     raise ValueError(f"Unsupported GetMyMeter history bucket: {bucket}")
 
 
@@ -100,22 +118,27 @@ def _period_end(start: datetime, bucket: str) -> datetime:
 
 
 def _is_complete(
-    record: UsageRecord, start: datetime, bucket: str, now: datetime
+    record: UsageRecord,
+    start: datetime,
+    bucket: str,
+    now: datetime,
+    source_timezone: tzinfo,
 ) -> bool:
     """Apply the explicit incomplete-period publication policy."""
-    source = _source_datetime(record)
+    source = _source_datetime(record, source_timezone)
     if bucket == BUCKET_RAW and source.minute == 59 and source.second == 59:
         return source <= now
     return _period_end(start, bucket) <= now
 
 
-def build_bucket_statistics(
+def build_bucket_statistics(  # noqa: PLR0913
     records: tuple[UsageRecord, ...] | list[UsageRecord],
     bucket: str,
     *,
     now: datetime | None = None,
     min_start: datetime | None = None,
     previous_sum: float | None = None,
+    source_timezone: tzinfo = UTC,
 ) -> HistoryBuildResult:
     """Build one bucket without network or recorder side effects.
 
@@ -147,7 +170,7 @@ def build_bucket_statistics(
             invalid_count += 1
             continue
         try:
-            start = canonical_start(record, bucket)
+            start = canonical_start(record, bucket, source_timezone=source_timezone)
         except OverflowError, OSError, ValueError:
             invalid_count += 1
             continue
@@ -176,7 +199,7 @@ def build_bucket_statistics(
     running_sum = previous_sum if previous_sum is not None else 0.0
     previous = previous_sum
     for start, record in winners:
-        if not _is_complete(record, start, bucket, now_utc):
+        if not _is_complete(record, start, bucket, now_utc, source_timezone):
             incomplete_count += 1
             continue
         if record.cumulative_gallons is None:
@@ -212,11 +235,15 @@ def build_all_history_statistics(
     records_by_bucket: Mapping[str, tuple[UsageRecord, ...] | list[UsageRecord]],
     *,
     now: datetime | None = None,
+    source_timezone: tzinfo = UTC,
 ) -> dict[str, HistoryBuildResult]:
     """Build all independent raw, daily, and monthly history series."""
     return {
         bucket: build_bucket_statistics(
-            records_by_bucket.get(bucket, ()), bucket, now=now
+            records_by_bucket.get(bucket, ()),
+            bucket,
+            now=now,
+            source_timezone=source_timezone,
         )
         for bucket in HISTORY_BUCKETS
     }
@@ -263,6 +290,7 @@ class GetMyMeterHistoryWorker:
         self.entry = entry
         self.api = api
         self._coordinator = coordinator
+        self._source_timezone = ZoneInfo(hass.config.time_zone)
         self._lock = asyncio.Lock()
         self._task: asyncio.Task[None] | None = None
         self._last_start: dict[str, datetime] = {}
@@ -338,7 +366,12 @@ class GetMyMeterHistoryWorker:
                 continue
 
             if full_replay:
-                result = build_bucket_statistics(records, bucket, now=now)
+                result = build_bucket_statistics(
+                    records,
+                    bucket,
+                    now=now,
+                    source_timezone=self._source_timezone,
+                )
             else:
                 result = build_bucket_statistics(
                     records,
@@ -346,6 +379,7 @@ class GetMyMeterHistoryWorker:
                     now=now,
                     min_start=self._last_start.get(bucket),
                     previous_sum=self._last_sum.get(bucket),
+                    source_timezone=self._source_timezone,
                 )
             status = "no_complete_data"
             if result.statistics:

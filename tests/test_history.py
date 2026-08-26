@@ -1,6 +1,7 @@
 """Deterministic history-boundary and statistics-builder tests."""
 
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -61,6 +62,28 @@ def test_raw_boundary_and_incomplete_hour() -> None:
     assert result.incomplete_count == 1
 
 
+def test_portal_wall_clock_hour_is_converted_from_local_timezone() -> None:
+    """A portal 05:00 wall-clock row renders at 05:00 Chicago, not midnight."""
+    chicago = ZoneInfo("America/Chicago")
+    record = make_record(datetime(2026, 8, 24, 5, tzinfo=UTC), BUCKET_RAW, 309.7, 1000)
+    assert canonical_start(record, BUCKET_RAW, source_timezone=chicago) == datetime(
+        2026, 8, 24, 10, tzinfo=UTC
+    )
+
+
+def test_portal_local_boundary_handles_dst_offset() -> None:
+    """Portal wall-clock conversion follows the utility timezone across DST."""
+    chicago = ZoneInfo("America/Chicago")
+    winter = make_record(datetime(2026, 1, 2, 5, tzinfo=UTC), BUCKET_RAW, 1, 1)
+    summer = make_record(datetime(2026, 8, 24, 5, tzinfo=UTC), BUCKET_RAW, 1, 2)
+    assert canonical_start(winter, BUCKET_RAW, source_timezone=chicago) == datetime(
+        2026, 1, 2, 11, tzinfo=UTC
+    )
+    assert canonical_start(summer, BUCKET_RAW, source_timezone=chicago) == datetime(
+        2026, 8, 24, 10, tzinfo=UTC
+    )
+
+
 def test_daily_and_monthly_period_starts_and_incomplete_policy() -> None:
     """Daily and monthly records use period starts and skip open periods."""
     daily_complete = make_record(
@@ -83,6 +106,29 @@ def test_daily_and_monthly_period_starts_and_incomplete_policy() -> None:
     assert monthly.statistics[0]["start"] == datetime(2026, 7, 1, tzinfo=UTC)
     assert daily.incomplete_count == 1
     assert monthly.incomplete_count == 1
+
+
+def test_daily_and_monthly_use_local_calendar_period_start() -> None:
+    """Period totals begin at local midnight while recorder stores UTC."""
+    chicago = ZoneInfo("America/Chicago")
+    daily = make_record(
+        datetime(2026, 8, 24, 23, 59, 59, tzinfo=UTC),
+        BUCKET_DAILY,
+        10,
+        110,
+    )
+    monthly = make_record(
+        datetime(2026, 8, 31, 23, 59, 59, tzinfo=UTC),
+        BUCKET_MONTHLY,
+        30,
+        300,
+    )
+    assert canonical_start(daily, BUCKET_DAILY, source_timezone=chicago) == datetime(
+        2026, 8, 24, 5, tzinfo=UTC
+    )
+    assert canonical_start(
+        monthly, BUCKET_MONTHLY, source_timezone=chicago
+    ) == datetime(2026, 8, 1, 5, tzinfo=UTC)
 
 
 def test_same_hour_latest_source_wins_and_corrections_are_preserved() -> None:

@@ -59,7 +59,7 @@ longer accepted.
 | Monthly usage | Most recent complete monthly total |
 | Cumulative usage | Current cumulative meter reading |
 
-All values are reported in gallons. The portal can lag behind Home Assistant's refresh time.
+All values are reported in gallons. The portal can lag behind Home Assistant's refresh time. GetMyMeter encodes utility-local wall-clock buckets as epoch-shaped values; the integration converts them through Home Assistant's configured timezone before writing statistics.
 
 ## Historical data
 

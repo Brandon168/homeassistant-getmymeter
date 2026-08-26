@@ -1,7 +1,5 @@
 """Sensor setup and stable entity identifier tests."""
 
-from datetime import UTC, datetime
-
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.core import HomeAssistant
@@ -44,7 +42,7 @@ async def test_four_current_water_sensors_have_stable_ids(
     assert entities[0].native_value == 1
     assert entities[0].extra_state_attributes == {
         "bucket": BUCKET_RAW,
-        "sample_timestamp": datetime.fromtimestamp(1704067200, UTC).isoformat(),
+        "sample_timestamp": "2024-01-01T08:00:00+00:00",
     }
     assert entities[2].native_value == 10
     assert entities[0].device_info["identifiers"] == {

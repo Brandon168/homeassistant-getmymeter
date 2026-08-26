@@ -2,7 +2,7 @@
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 from decimal import Decimal, InvalidOperation
 
 BUCKETS = {"r": "raw/hourly", "d": "daily", "m": "monthly"}
@@ -29,8 +29,13 @@ class UsageRecord:
 
     @property
     def timestamp_utc(self) -> str:
-        """Return the sample timestamp in UTC ISO-8601 form."""
+        """Return the portal's encoded wall-clock timestamp for diagnostics."""
         return self.timestamp_datetime.isoformat()
+
+    def timestamp_in(self, source_timezone: tzinfo) -> datetime:
+        """Interpret the portal epoch fields as wall-clock time in its timezone."""
+        wall_clock = self.timestamp_datetime.replace(tzinfo=None)
+        return wall_clock.replace(tzinfo=source_timezone).astimezone(UTC)
 
 
 def _parse_number(value: str) -> float | None:

@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import override
+from zoneinfo import ZoneInfo
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -134,5 +135,7 @@ class GetMyMeterSensor(CoordinatorEntity[GetMyMeterCoordinator], SensorEntity):
             return None
         return {
             "bucket": record.bucket,
-            "sample_timestamp": record.timestamp_utc,
+            "sample_timestamp": record.timestamp_in(
+                ZoneInfo(self.coordinator.hass.config.time_zone)
+            ).isoformat(),
         }
