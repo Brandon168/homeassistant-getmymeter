@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.getmymeter.api import GetMyMeterApiError
+from custom_components.getmymeter.api import GetMyMeterApiError, GetMyMeterAuthError
 from custom_components.getmymeter.const import BUCKET_DAILY, BUCKET_MONTHLY, BUCKET_RAW
 from custom_components.getmymeter.history import GetMyMeterHistoryWorker
 from custom_components.getmymeter.identity import statistic_id
@@ -143,3 +143,43 @@ async def test_worker_isolates_one_bucket_failure(hass: HomeAssistant) -> None:
     assert worker.diagnostics["status"] == "partial"
     assert worker.diagnostics["buckets"][BUCKET_RAW]["status"] == "fetch_failed"
     assert worker.diagnostics["buckets"][BUCKET_DAILY]["status"] == "import_queued"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failed_bucket", [BUCKET_RAW, BUCKET_DAILY, BUCKET_MONTHLY])
+async def test_worker_awaits_refresh_after_auth_failure(
+    hass: HomeAssistant, failed_bucket: str
+) -> None:
+    """An auth failure in any bucket awaits recovery and preserves other imports."""
+    api = AsyncMock()
+    api.async_fetch_bucket.side_effect = [
+        GetMyMeterAuthError("synthetic auth failure")
+        if bucket == failed_bucket
+        else RECORDS[bucket]
+        for bucket in (BUCKET_RAW, BUCKET_DAILY, BUCKET_MONTHLY)
+    ]
+    coordinator = AsyncMock()
+    worker = GetMyMeterHistoryWorker(hass, make_entry(), api, coordinator)
+    with patch(
+        "custom_components.getmymeter.history.async_add_external_statistics"
+    ) as add_statistics:
+        await worker.async_run()
+
+    coordinator.async_request_refresh.assert_awaited_once_with()
+    assert add_statistics.call_count == 2
+    assert worker.diagnostics["status"] == "auth_failed"
+    assert worker.diagnostics["buckets"][failed_bucket]["status"] == "auth_failed"
+
+
+@pytest.mark.asyncio
+async def test_worker_does_not_refresh_on_fetch_failure(hass: HomeAssistant) -> None:
+    """Ordinary portal errors do not trigger the auth-recovery refresh."""
+    api = AsyncMock()
+    api.async_fetch_bucket.side_effect = GetMyMeterApiError("synthetic fetch failure")
+    coordinator = AsyncMock()
+    worker = GetMyMeterHistoryWorker(hass, make_entry(), api, coordinator)
+
+    await worker.async_run()
+
+    coordinator.async_request_refresh.assert_not_called()
+    assert worker.diagnostics["status"] == "partial"

@@ -426,4 +426,4 @@ class GetMyMeterHistoryWorker:
         if auth_failed and self._coordinator is not None:
             request_refresh = getattr(self._coordinator, "async_request_refresh", None)
             if request_refresh is not None:
-                request_refresh()
+                await request_refresh()

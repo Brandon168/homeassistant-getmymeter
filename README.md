@@ -1,6 +1,6 @@
 # GetMyMeter for Home Assistant
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default/pull/10318)
 [![Validate](https://github.com/Brandon168/homeassistant-getmymeter/actions/workflows/validate.yml/badge.svg)](https://github.com/Brandon168/homeassistant-getmymeter/actions/workflows/validate.yml)
 
 An unofficial, read-only Home Assistant integration for water meters available through the GetMyMeter / H2O Analytics customer portal.
@@ -19,17 +19,13 @@ An unofficial, read-only Home Assistant integration for water meters available t
 ### HACS (recommended)
 
 1. Open **HACS → Integrations**.
-2. Open the menu and choose **Custom repositories**.
-3. Add:
+2. Search for and install **GetMyMeter**.
+3. Restart Home Assistant.
+4. Open **Settings → Devices & services → Add integration → GetMyMeter**.
 
-   ```text
-   https://github.com/Brandon168/homeassistant-getmymeter
-   ```
-
-   Select **Integration** as the category.
-4. Search for and install **GetMyMeter**.
-5. Restart Home Assistant.
-6. Open **Settings → Devices & services → Add integration → GetMyMeter**.
+GetMyMeter is included in HACS's default repository list; no custom repository
+is required. After its initial listing, it can take up to eight hours to appear
+in HACS search.
 
 ### Manual installation
 

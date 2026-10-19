@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 - 2026-10-18
+
+- Await the coordinator refresh after a history authentication failure so recovery actually runs instead of creating an un-awaited coroutine.
+- Added regression coverage for authentication failures in each history bucket and for ordinary fetch failures.
+- Corrected portal wall-clock timestamps to use Home Assistant's configured timezone, including daylight-saving offsets, for sensor timestamps and historical statistics. This includes the previously committed but unpublished 0.2.1 correction.
+- Updated HACS installation instructions and the badge now that GetMyMeter is in the default repository list; adding a custom repository is no longer required.
+
 ## 0.2.0
 
 - Replaced manual `/ami_data` token setup with username/password login and automatic meter discovery.
