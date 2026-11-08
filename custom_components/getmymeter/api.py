@@ -37,7 +37,10 @@ _BOOTSTRAP_PERMUTATION_RE = re.compile(r"[A-F0-9]{32}", re.IGNORECASE)
 _GWT_STRING = "java.lang.String/2004016611"
 _GWT_BOOLEAN = "java.lang.Boolean/476441737"
 _GWT_INTEGER = "java.lang.Integer/3438268394"
-_TRUSTED_SESSION_TYPE = "com.h2oanalytics.shared.TrustedSession/1943350601"
+# The number after the slash is the portal's serialization signature. It changes
+# whenever H2O Analytics adds a field to TrustedSession (seen: 1943350601,
+# 3017207655), so match on the class name and validate the fields read below.
+_TRUSTED_SESSION_PREFIX = "com.h2oanalytics.shared.TrustedSession/"
 
 
 class GetMyMeterApiError(Exception):
@@ -256,7 +259,7 @@ class GetMyMeterApi:
         if pop_int() < 1:
             raise GetMyMeterAuthError("The portal returned no authenticated account")
         session_type = read_string()
-        if session_type != _TRUSTED_SESSION_TYPE:
+        if not session_type or not session_type.startswith(_TRUSTED_SESSION_PREFIX):
             raise GetMyMeterApiError("The portal session type is invalid")
 
         first_fields = [read_string() for _ in range(25)]
