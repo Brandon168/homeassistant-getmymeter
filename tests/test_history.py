@@ -43,31 +43,36 @@ def make_record(
 
 
 def test_raw_boundary_and_incomplete_hour() -> None:
-    """Raw rows use UTC top-of-hour starts and exclude the current hour."""
+    """Raw rows are stamped when their hour ends and exclude the current hour."""
+    hour_end = make_record(datetime(2026, 1, 2, 11, tzinfo=UTC), BUCKET_RAW, 3, 100)
     boundary = make_record(
         datetime(2026, 1, 2, 11, 59, 59, tzinfo=UTC), BUCKET_RAW, 7, 107
     )
-    ordinary = make_record(datetime(2026, 1, 2, 11, 12, tzinfo=UTC), BUCKET_RAW, 3, 100)
     incomplete = make_record(
         datetime(2026, 8, 24, 12, 5, tzinfo=UTC), BUCKET_RAW, 9, 200
     )
-    assert canonical_start(boundary, BUCKET_RAW) == datetime(2026, 1, 2, 12, tzinfo=UTC)
+    assert canonical_start(hour_end, BUCKET_RAW) == datetime(2026, 1, 2, 10, tzinfo=UTC)
+    assert canonical_start(boundary, BUCKET_RAW) == datetime(2026, 1, 2, 11, tzinfo=UTC)
     result = build_bucket_statistics(
-        [boundary, ordinary, incomplete], BUCKET_RAW, now=NOW
+        [hour_end, boundary, incomplete], BUCKET_RAW, now=NOW
     )
     assert [row["start"] for row in result.statistics] == [
+        datetime(2026, 1, 2, 10, tzinfo=UTC),
         datetime(2026, 1, 2, 11, tzinfo=UTC),
-        datetime(2026, 1, 2, 12, tzinfo=UTC),
     ]
     assert result.incomplete_count == 1
 
 
 def test_portal_wall_clock_hour_is_converted_from_local_timezone() -> None:
-    """A portal 05:00 wall-clock row renders at 05:00 Chicago, not midnight."""
+    """A portal 05:00 wall-clock row is the 04:00-05:00 Chicago hour.
+
+    Checked against a sprinkler controller: watering that starts at 06:00
+    local appears in the portal row stamped 07:00.
+    """
     chicago = ZoneInfo("America/Chicago")
     record = make_record(datetime(2026, 8, 24, 5, tzinfo=UTC), BUCKET_RAW, 309.7, 1000)
     assert canonical_start(record, BUCKET_RAW, source_timezone=chicago) == datetime(
-        2026, 8, 24, 10, tzinfo=UTC
+        2026, 8, 24, 9, tzinfo=UTC
     )
 
 
@@ -77,10 +82,10 @@ def test_portal_local_boundary_handles_dst_offset() -> None:
     winter = make_record(datetime(2026, 1, 2, 5, tzinfo=UTC), BUCKET_RAW, 1, 1)
     summer = make_record(datetime(2026, 8, 24, 5, tzinfo=UTC), BUCKET_RAW, 1, 2)
     assert canonical_start(winter, BUCKET_RAW, source_timezone=chicago) == datetime(
-        2026, 1, 2, 11, tzinfo=UTC
+        2026, 1, 2, 10, tzinfo=UTC
     )
     assert canonical_start(summer, BUCKET_RAW, source_timezone=chicago) == datetime(
-        2026, 8, 24, 10, tzinfo=UTC
+        2026, 8, 24, 9, tzinfo=UTC
     )
 
 

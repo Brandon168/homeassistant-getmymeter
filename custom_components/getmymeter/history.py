@@ -70,15 +70,16 @@ def canonical_start(
 ) -> datetime:
     """Map a portal record to a deterministic UTC top-of-hour start.
 
-    Raw boundary markers at ``xx:59:59`` are treated as the end of that hour,
-    then moved to the following hour before flooring. Daily and monthly rows
-    represent their source-local calendar period and use that period's start.
+    The portal stamps each raw row when its hour ends: a ``07:00:00`` row holds
+    06:00-07:00 usage, and an ``xx:59:59`` marker closes hour ``xx``. Stepping
+    back one second before flooring puts both forms on their hour's start.
+    Daily and monthly rows represent their source-local calendar period and use
+    that period's start.
     """
     bucket = bucket or record.bucket
     if bucket == BUCKET_RAW:
         source = _source_datetime(record, source_timezone)
-        if source.minute == 59 and source.second == 59 and source.microsecond == 0:
-            source += timedelta(seconds=1)
+        source -= timedelta(seconds=1)
         return source.replace(minute=0, second=0, microsecond=0)
     wall_clock = record.timestamp_datetime.replace(tzinfo=None)
     if bucket == BUCKET_DAILY:
