@@ -27,6 +27,7 @@ LOGIN_HTML_WITH_BOOTSTRAP = f"""
 """
 BOOTSTRAP = f"function h2o_portal(){{var current='{PERMUTATION}';}}"
 TRUSTED_SESSION = r"""//OK[39,0,38,37,-7,36,0,0,0,0,0,-7,35,-8,34,33,-7,32,31,30,29,28,27,26,25,0,-7,"FJlwA",24,0,0,23,0,0,0,0,-7,0,13,-7,0,-7,-8,-7,1,20,22,0,21,0,20,19,12,13,0,138,13,18,5,0,0,0,17,5,0,0,15,16,15,5,14,7,13,20,13,0,0,0,5,5,5,5,12,11,10,0,0,0,0,9,5,0,5,8,7,0,6,5,4,3,2,1,1,["java.util.ArrayList/4159755760","com.h2oanalytics.shared.TrustedSession/1943350601","synthetic-name","synthetic-portal-account","","synthetic-5","synthetic-6","synthetic-7","synthetic-8","synthetic-9","synthetic-10","synthetic-11","java.lang.Integer/3438268394","synthetic-13","synthetic-14","synthetic-15","synthetic-16","synthetic-17","synthetic-18","java.lang.Boolean/476441737","synthetic-20","synthetic-21","synthetic-22","java.lang.Long/4227064769","synthetic-24","synthetic-25","synthetic-26","synthetic-27","synthetic-28","synthetic-29","synthetic-30","synthetic-31","synthetic-32","synthetic-33","synthetic-34","synthetic-35","synthetic-36","synthetic-37","synthetic-38"],0,7]"""
+TRUSTED_SESSION_V2 = r"""//OK[39,0,38,37,-7,36,0,0,0,0,0,-7,35,-8,34,33,-7,32,31,30,29,28,27,26,25,0,-7,"FJlwA",24,0,0,23,0,0,0,0,-7,0,13,-7,0,-7,-8,-7,1,20,22,0,0,21,0,20,19,12,13,0,138,13,18,5,0,0,0,17,5,0,0,15,16,15,5,14,7,13,20,13,0,0,0,5,5,5,5,12,11,10,0,0,0,0,9,5,0,5,8,7,0,6,5,4,3,2,1,1,["java.util.ArrayList/4159755760","com.h2oanalytics.shared.TrustedSession/3017207655","synthetic-name","synthetic-portal-account","","synthetic-5","synthetic-6","synthetic-7","synthetic-8","synthetic-9","synthetic-10","synthetic-11","java.lang.Integer/3438268394","synthetic-13","synthetic-14","synthetic-15","synthetic-16","synthetic-17","synthetic-18","java.lang.Boolean/476441737","synthetic-20","synthetic-21","synthetic-22","java.lang.Long/4227064769","synthetic-24","synthetic-25","synthetic-26","synthetic-27","synthetic-28","synthetic-29","synthetic-30","synthetic-31","synthetic-32","synthetic-33","synthetic-34","synthetic-35","synthetic-36","synthetic-37","synthetic-38"],0,7]"""
 METERS = '//OK[1,["synthetic-account|1|meter|address|true|true|true\\n"],0,7]'
 AMI_DATA = "1704067200000|1|2|0|"
 
@@ -239,3 +240,21 @@ async def test_missing_credentials_fail_before_request() -> None:
     with pytest.raises(GetMyMeterAuthError):
         await GetMyMeterApi(session, {}).async_fetch_bucket("d")
     assert not session.calls
+
+
+def test_trusted_session_accepts_new_portal_signature() -> None:
+    """A newer TrustedSession signature with an added trailing field still parses."""
+    assert GetMyMeterApi._parse_trusted_session(TRUSTED_SESSION_V2) == (
+        "synthetic-portal-account",
+        "138",
+    )
+
+
+def test_trusted_session_rejects_other_root_types() -> None:
+    """Objects that are not a TrustedSession are still rejected."""
+    other = TRUSTED_SESSION.replace(
+        "com.h2oanalytics.shared.TrustedSession/1943350601",
+        "com.h2oanalytics.shared.SomethingElse/1",
+    )
+    with pytest.raises(GetMyMeterApiError, match="session type is invalid"):
+        GetMyMeterApi._parse_trusted_session(other)
